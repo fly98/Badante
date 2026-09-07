@@ -123,7 +123,7 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
 
 <div class="wrap" id="app" hidden>
   <h1 id="titolo">Buste paga</h1>
-  <p class="sotto" id="sottotitolo"></p>
+  <p class="sotto" id="sottotitolo"></p><p class="sotto" style="margin-top:-.9rem;font-size:.72rem">versione 4</p>
 
   <nav role="tablist">
     <button role="tab" id="t-buste" aria-selected="true">Buste</button>
@@ -843,8 +843,13 @@ function avvia(){
       esito.innerHTML="<div class='nota'>Dati caricati: <strong>"+
         esc(S.rapporto.lavoratore||"?")+"</strong>, paga base "+eur(pagaBase())+" €.</div>";
     }catch(e){
-      esito.innerHTML="<div class='nota attenzione'>Non riesco a leggere quel codice. "+
-        "Copialo tutto, dall'inizio alla fine, senza righe a capo.</div>";
+      var t=(document.getElementById("semeIn").value||"").replace(/\s+/g,"");
+      var msg = t.length===0 ? "Il riquadro è vuoto: l'incollaggio non è andato a buon fine."
+              : t.length<200 ? "Il codice è incompleto: ne sono arrivati solo "+t.length+
+                               " caratteri, ne servono più di mille."
+              : "Il codice arriva intero ("+t.length+" caratteri) ma qualcosa non torna: "+e.message;
+      esito.innerHTML="<div class='nota attenzione'>"+esc(msg)+
+        " Se non ne esci, usa il link che ti ho dato in chat: fa tutto da solo.</div>";
     }
   };
   document.getElementById("esporta").onclick=esportaFile;
