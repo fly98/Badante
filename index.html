@@ -123,7 +123,7 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
 
 <div class="wrap" id="app" hidden>
   <h1 id="titolo">Buste paga</h1>
-  <p class="sotto" id="sottotitolo"></p><p class="sotto" style="margin-top:-.9rem;font-size:.72rem">versione 4</p>
+  <p class="sotto" id="sottotitolo"></p><p class="sotto" style="margin-top:-.9rem;font-size:.72rem">versione 5</p>
 
   <nav role="tablist">
     <button role="tab" id="t-buste" aria-selected="true">Buste</button>
@@ -219,6 +219,8 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
       <div><label for="d_scatti">Scatti di anzianità maturati</label><input id="d_scatti" type="number" min="0" max="7"></div>
       <div><label for="d_va">Vitto e alloggio al giorno</label><input id="d_va" inputmode="decimal"></div>
       <div><label for="d_oreSett">Ore settimanali</label><input id="d_oreSett" inputmode="decimal"></div>
+      <div><label for="d_ferieMese">Mese in cui prende le ferie</label>
+        <select id="d_ferieMese"></select></div>
       <div><label for="d_inpsOra">Contributo INPS a carico lavoratore, all'ora</label><input id="d_inpsOra" inputmode="decimal"></div>
       <div><label for="d_assistOra">Assistenza contrattuale a carico lavoratore, all'ora</label><input id="d_assistOra" inputmode="decimal"></div>
     </div>
@@ -273,6 +275,7 @@ function vuoto(){
           giorniMese:26,divisoreTFR:13.5},
     settimane:{},
     periodo:{m:new Date().getMonth(),a:new Date().getFullYear()},
+    ferieMese:-1,
     contatori:{carry:0,fondo:0,quotaAnno:0,ferieAP:0,ferieMat:0,ferieGod:0,
                rival:0,impRival:0,anticipi:0},
     avvisi:[]
@@ -349,6 +352,7 @@ function prossimoScatto(){
 }
 
 /* ---------- motore ---------- */
+function valoreScatti(){ return c2(S.paga.minimo*0.04*(Number(S.paga.scatti)||0)); }
 function pagaBase(){ return c2(S.paga.minimo*(1+0.04*(S.paga.scatti||0))); }
 function rataGiorno(){ return c5(pagaBase()/S.paga.giorniMese); }
 function baseTFR(){ return c2(pagaBase()+S.paga.va*30); }
@@ -430,11 +434,21 @@ function disegnaCedolino(r){
         "<br>Livello "+esc(S.rapporto.livello)+
         " · prossimo scatto "+esc(prossimoScatto()||"—")+"</div>"+
     "</div>"+
+    "<h3 style='margin:.2rem 0 .2rem;font-size:.8rem'>Elementi della retribuzione</h3>"+
+    "<div class='piede' style='margin:0 0 .8rem'>"+
+      "<div>Paga base, minimo contrattuale</div><div class='d num'>"+eur(S.paga.minimo)+"</div>"+
+      ((Number(S.paga.scatti)||0)>0 ?
+        "<div>Scatti di anzianità ("+S.paga.scatti+" × 4%)</div><div class='d num'>"+
+        eur(valoreScatti())+"</div>" : "")+
+      "<div><strong>Totale paga base</strong></div><div class='d num'><strong>"+
+        eur(pagaBase())+"</strong></div>"+
+      "<div>Indennità vitto e alloggio</div><div class='d num'>"+
+        eur(S.paga.va)+" × 30 = "+eur(c2(S.paga.va*30))+"</div>"+
+    "</div>"+
     "<div class='piede' style='margin:0 0 .8rem'>"+
       "<div>Giorni lavorati</div><div class='d num'>"+r.ggLav+"</div>"+
       "<div>Ore ordinarie</div><div class='d num'>"+dec(r.oreLav,2)+"</div>"+
       "<div>Settimane INPS</div><div class='d num'>"+r.sett+" ("+dec(r.ore,2)+" ore)</div>"+
-      "<div>Paga base mensile</div><div class='d num'>"+eur(pagaBase())+"</div>"+
     "</div>"+
     "<table><thead><tr><th>Competenze</th><th class='d'>Base</th>"+
     "<th class='d'>Riferimento</th><th class='d'>Importo</th></tr></thead>"+
@@ -507,6 +521,15 @@ function disegnaAvvisi(r){
            "1,5% fisso più il 75% dell'indice ISTAT dei prezzi al consumo, con l'imposta del 17% "+
            "sulla rivalutazione stessa. L'indice definitivo esce a gennaio: aggiorna i due campi in Dati.</div>";
   }
+  if(S.ferieMese>=0 && r.mese===S.ferieMese && r.tipo==="ordinaria"){
+    var disp=Math.floor(c2(S.contatori.ferieAP+S.contatori.ferieMat-S.contatori.ferieGod));
+    out += "<div class='nota'>È il mese in cui prende le <strong>ferie</strong>. "+
+      "Ne ha "+disp+" giorni disponibili, che si pagano a "+eur(rataFerie())+" € l'uno "+
+      "invece di "+eur(rataGiorno())+" €."+
+      "<div class='barra nonstampare' style='margin:.6rem 0 0'>"+
+      "<button class='azione' onclick='mettiFerie("+disp+")'>Mettile in questa busta</button>"+
+      "</div></div>";
+  }
   out += promemoriaContributi(r.anno, r.mese);
   document.getElementById("avvisi").innerHTML = out;
 }
@@ -561,6 +584,11 @@ function promemoriaContributi(a,m){
     "<button class='azione vuota' onclick='segnaPagato("+x.a+","+x.t+")'>Segnalo come pagato</button>"+
     "<button class='azione vuota' onclick='vaiContributi("+x.a+","+x.t+")'>Inserisci il codice avviso</button>"+
     "</div></div>";
+}
+function mettiFerie(gg){
+  document.getElementById("tipo").value="ferie";
+  document.getElementById("ggFerie").value=Math.min(gg,S.paga.giorniMese);
+  aggiorna();
 }
 function segnaPagato(a,t){
   var av = trovaAvviso(a,t);
@@ -717,6 +745,19 @@ var CAMPI = [
   ["d_ferieMat","contatori","ferieMat","n"],["d_ferieGod","contatori","ferieGod","n"]
 ];
 function riempiDati(){
+  var fm=document.getElementById("d_ferieMese");
+  if(fm && !fm.options.length){
+    var o=document.createElement("option"); o.value=-1; o.textContent="non impostato";
+    fm.appendChild(o);
+    MESI.forEach(function(n,i){
+      var x=document.createElement("option"); x.value=i;
+      x.textContent=n.charAt(0).toUpperCase()+n.slice(1); fm.appendChild(x);
+    });
+    fm.addEventListener("change",function(){
+      S.ferieMese=Number(this.value); salvaStato(); aggiorna();
+    });
+  }
+  if(fm) fm.value = (S.ferieMese===undefined?-1:S.ferieMese);
   CAMPI.forEach(function(c){
     var el=document.getElementById(c[0]); if(!el) return;
     var v=S[c[1]][c[2]];
