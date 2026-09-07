@@ -187,6 +187,14 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
 
   <!-- ============ DATI ============ -->
   <section id="s-dati" hidden>
+    <h2>Carica i dati</h2>
+    <p class="sotto">Incolla qui il codice che ti ho dato e premi Carica. Sostituisce tutto.</p>
+    <textarea id="semeIn" rows="4" placeholder="Incolla qui il codice"
+      style="width:100%;padding:.55rem .6rem;border:1px solid var(--riga);border-radius:3px;
+             font:13px/1.4 ui-monospace,Menlo,monospace;background:#fff"></textarea>
+    <div class="barra"><button class="azione" id="caricaSeme">Carica</button></div>
+    <div id="esitoSeme"></div>
+
     <h2>Rapporto di lavoro</h2>
     <div class="griglia">
       <div><label for="d_datore">Datore di lavoro</label><input id="d_datore"></div>
@@ -740,6 +748,22 @@ function avvia(){
   document.getElementById("stampa").onclick=function(){window.print();};
   document.getElementById("salva").onclick=salvaMese;
   document.getElementById("faiQr").onclick=disegnaQr;
+  document.getElementById("caricaSeme").onclick=function(){
+    var esito=document.getElementById("esitoSeme");
+    try{
+      applicaSeme(document.getElementById("semeIn").value);
+      riempiDati(); disegnaSettimane();
+      document.getElementById("mese").value=S.periodo.m;
+      document.getElementById("anno").value=S.periodo.a;
+      aggiorna();
+      document.getElementById("semeIn").value="";
+      esito.innerHTML="<div class='nota'>Dati caricati: <strong>"+
+        esc(S.rapporto.lavoratrice||"?")+"</strong>, paga base "+eur(pagaBase())+" €.</div>";
+    }catch(e){
+      esito.innerHTML="<div class='nota attenzione'>Non riesco a leggere quel codice. "+
+        "Copialo tutto, dall'inizio alla fine, senza righe a capo.</div>";
+    }
+  };
   document.getElementById("esporta").onclick=esportaFile;
   document.getElementById("importa").onclick=function(){document.getElementById("fileIn").click();};
   document.getElementById("fileIn").onchange=function(e){
@@ -751,6 +775,7 @@ function avvia(){
     }
   };
   aggiorna();
+  if(!S.paga.minimo) scheda("dati");
 }
 
 document.getElementById("entra").onclick=function(){
@@ -767,16 +792,30 @@ document.getElementById("entra").onclick=function(){
 document.getElementById("chiave").addEventListener("keydown",function(e){
   if(e.key==="Enter") document.getElementById("entra").click();
 });
+function decodificaSeme(txt){
+  var t = String(txt||"").trim();
+  var i = t.indexOf("dati=");
+  if(i>=0) t = t.slice(i+5);
+  t = t.replace(/\s+/g,"").replace(/-/g,"+").replace(/_/g,"/");
+  while(t.length % 4) t += "=";
+  var grezzo = atob(t);
+  var testo;
+  try{ testo = decodeURIComponent(escape(grezzo)); }catch(e){ testo = grezzo; }
+  return JSON.parse(testo);
+}
+function applicaSeme(txt){
+  var d = decodificaSeme(txt);
+  S = fondi(vuoto(), d);
+  salvaStato();
+  try{ localStorage.setItem("badante_chiave", CHIAVE); }catch(e){}
+  return true;
+}
 function semina(){
   var h = location.hash || "";
   var i = h.indexOf("dati=");
   if(i < 0) return false;
   try{
-    var b = decodeURIComponent(h.slice(i+5));
-    var testo = decodeURIComponent(escape(atob(b.replace(/-/g,"+").replace(/_/g,"/"))));
-    S = fondi(vuoto(), JSON.parse(testo));
-    salvaStato();
-    try{ localStorage.setItem("badante_chiave", CHIAVE); }catch(e){}
+    applicaSeme(decodeURIComponent(h.slice(i+5)));
     history.replaceState(null,"",location.pathname);
     return true;
   }catch(e){ return false; }
