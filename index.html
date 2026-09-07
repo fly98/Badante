@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buste paga</title>
+<style>
+:root{
+  --carta:#FCFBF7; --inchiostro:#14181D; --tenue:#6E6A60;
+  --verde:#0B5137; --blu:#1D2B4A; --riga:#D9D4C8; --rigasottile:#EAE6DC;
+  --allarme:#8A2B1F; --evidenza:#F3EFE2;
+  --serif:Iowan Old Style,Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--carta);color:var(--inchiostro);font:16px/1.5 var(--sans);
+  -webkit-text-size-adjust:100%;padding:0 0 4rem}
+.wrap{max-width:44rem;margin:0 auto;padding:0 1.1rem}
+h1{font:600 1.5rem/1.2 var(--serif);margin:1.4rem 0 .2rem}
+h2{font:600 1.1rem/1.3 var(--serif);margin:2rem 0 .6rem;padding-bottom:.3rem;
+  border-bottom:1px solid var(--riga)}
+h3{font:600 .95rem/1.3 var(--sans);margin:1.3rem 0 .4rem}
+p{margin:.5rem 0}
+.sotto{color:var(--tenue);font-size:.85rem;margin:0 0 1.2rem}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--blu)}
+
+/* accesso */
+#gate{max-width:22rem;margin:22vh auto;padding:0 1.1rem;text-align:left}
+#gate input{width:100%}
+
+/* navigazione */
+nav{display:flex;gap:0;border-bottom:1px solid var(--riga);margin:.6rem 0 0;
+  position:sticky;top:0;background:var(--carta);z-index:5}
+nav button{flex:1;background:none;border:0;border-bottom:2px solid transparent;
+  padding:.75rem .3rem;font:500 .95rem var(--sans);color:var(--tenue);cursor:pointer}
+nav button[aria-selected=true]{color:var(--verde);border-bottom-color:var(--verde)}
+nav button:focus-visible{outline:2px solid var(--blu);outline-offset:-2px}
+
+/* campi */
+label{display:block;font-size:.8rem;color:var(--tenue);margin:.7rem 0 .15rem}
+input,select{width:100%;padding:.55rem .6rem;border:1px solid var(--riga);
+  border-radius:3px;background:#fff;font:16px var(--sans);color:var(--inchiostro);
+  font-variant-numeric:tabular-nums}
+input:focus,select:focus{outline:2px solid var(--blu);outline-offset:1px;border-color:var(--blu)}
+.griglia{display:grid;grid-template-columns:1fr 1fr;gap:0 .8rem}
+.griglia3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 .6rem}
+
+button.azione{background:var(--verde);color:#fff;border:0;border-radius:3px;
+  padding:.7rem 1.1rem;font:500 .95rem var(--sans);cursor:pointer;margin:.4rem .4rem .4rem 0}
+button.azione.vuota{background:none;color:var(--verde);border:1px solid var(--verde)}
+button.azione.rischio{background:none;color:var(--allarme);border:1px solid var(--allarme)}
+button.azione:focus-visible{outline:2px solid var(--blu);outline-offset:2px}
+.barra{margin:1.2rem 0 0}
+
+/* cedolino */
+.foglio{background:#fff;border:1px solid var(--riga);padding:1rem;margin:1rem 0}
+.testata{display:flex;justify-content:space-between;gap:1rem;
+  border-bottom:2px solid var(--verde);padding-bottom:.5rem;margin-bottom:.7rem}
+.testata .chi{font:600 .95rem var(--serif)}
+.testata .quando{font:600 .95rem var(--serif);text-align:right;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.88rem}
+th{text-align:left;font:600 .72rem var(--sans);color:var(--tenue);
+  padding:.3rem 0;border-bottom:1px solid var(--riga)}
+th.d,td.d{text-align:right}
+td{padding:.28rem 0;border-bottom:1px solid var(--rigasottile)}
+tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;padding-top:.5rem}
+.netto{display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:.8rem;padding-top:.6rem;border-top:2px solid var(--verde)}
+.netto .etichetta{font:600 .85rem var(--sans)}
+.netto .cifra{font:600 1.5rem var(--serif);font-variant-numeric:tabular-nums}
+.piede{margin-top:.9rem;padding-top:.5rem;border-top:1px solid var(--rigasottile);
+  font-size:.75rem;color:var(--tenue);display:grid;grid-template-columns:1fr 1fr;gap:.15rem .8rem}
+.firma{margin-top:1.4rem;font-size:.75rem;color:var(--tenue)}
+.firma span{display:inline-block;border-bottom:1px solid var(--riga);
+  width:11rem;margin-left:.5rem;height:1.6rem;vertical-align:bottom}
+
+/* avvisi */
+.nota{background:var(--evidenza);border-left:3px solid var(--verde);
+  padding:.6rem .8rem;margin:.9rem 0;font-size:.88rem}
+.nota.attenzione{border-left-color:var(--allarme)}
+.nota strong{font-weight:600}
+
+/* trimestri */
+.trim{border:1px solid var(--riga);background:#fff;padding:.8rem;margin:.7rem 0}
+.trim .riga1{display:flex;justify-content:space-between;align-items:baseline}
+.trim .titolo{font:600 .95rem var(--serif)}
+.trim .scad{font-size:.8rem;color:var(--tenue)}
+.trim.urgente{border-color:var(--allarme);border-left-width:3px}
+.trim.fatto{opacity:.55}
+#qr{margin:.8rem 0;text-align:center}
+#qr img,#qr canvas{max-width:200px;height:auto}
+.codice{font:.8rem/1.5 ui-monospace,Menlo,monospace;word-break:break-all;
+  background:var(--evidenza);padding:.4rem .5rem;margin:.4rem 0}
+
+@media (max-width:420px){.griglia,.griglia3{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@media print{
+  body{background:#fff;padding:0}
+  nav,.barra,.nonstampare,h1,.sotto{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .foglio{border:0;padding:0;margin:0}
+  .nota{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1>Buste paga</h1>
+  <p class="sotto">Serve la chiave d'accesso.</p>
+  <label for="chiave">Chiave</label>
+  <input id="chiave" type="password" autocomplete="current-password" inputmode="text">
+  <div class="barra"><button class="azione" id="entra">Entra</button></div>
+  <p class="sotto" id="gateErr" style="color:var(--allarme)"></p>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <h1 id="titolo">Buste paga</h1>
+  <p class="sotto" id="sottotitolo"></p>
+
+  <nav role="tablist">
+    <button role="tab" id="t-buste" aria-selected="true">Buste</button>
+    <button role="tab" id="t-contributi" aria-selected="false">Contributi</button>
+    <button role="tab" id="t-dati" aria-selected="false">Dati</button>
+  </nav>
+
+  <!-- ============ BUSTE ============ -->
+  <section id="s-buste">
+    <div class="nonstampare">
+      <h2>Mese da elaborare</h2>
+      <div class="griglia3">
+        <div><label for="mese">Mese</label><select id="mese"></select></div>
+        <div><label for="anno">Anno</label><input id="anno" type="number" inputmode="numeric"></div>
+        <div><label for="tipo">Tipo</label><select id="tipo">
+          <option value="ordinaria">Ordinaria</option>
+          <option value="ferie">Con ferie</option>
+          <option value="tredicesima">Tredicesima</option>
+        </select></div>
+      </div>
+      <div id="boxFerie" hidden>
+        <label for="ggFerie">Giorni di ferie in questo mese</label>
+        <input id="ggFerie" type="number" step="1" min="0" max="26" inputmode="numeric">
+        <p class="sotto" id="notaFerie"></p>
+      </div>
+      <div id="avvisi"></div>
+    </div>
+
+    <div class="foglio" id="cedolino"></div>
+
+    <div class="barra nonstampare">
+      <button class="azione" id="stampa">Stampa o salva in PDF</button>
+      <button class="azione vuota" id="salva">Salva e passa al mese dopo</button>
+    </div>
+    <p class="sotto nonstampare">Su iPhone: Stampa, poi pizzica sull'anteprima per aprirla e condividila.</p>
+  </section>
+
+  <!-- ============ CONTRIBUTI ============ -->
+  <section id="s-contributi" hidden>
+    <h2>Contributi trimestrali</h2>
+    <p class="sotto">L'avviso lo genera l'INPS. Qui tieni il conto di quanto aspettarti e archivi i codici.</p>
+    <div id="listaTrim"></div>
+
+    <h3>Genera il QR da un codice avviso</h3>
+    <label for="codAvviso">Codice avviso (18 cifre, sull'avviso INPS)</label>
+    <input id="codAvviso" inputmode="numeric" placeholder="312260701711764437">
+    <label for="impAvviso">Importo in euro</label>
+    <input id="impAvviso" inputmode="decimal" placeholder="870,48">
+    <label for="cbillAvviso">Codice CBILL</label>
+    <input id="cbillAvviso" placeholder="AAQV6">
+    <div class="barra"><button class="azione" id="faiQr">Disegna il QR</button></div>
+    <div id="qr"></div>
+    <div id="qrDati"></div>
+
+    <h3>Come si paga</h3>
+    <ol style="font-size:.9rem;padding-left:1.2rem">
+      <li>inps.it → Prestazioni e servizi → Tutti i servizi</li>
+      <li>Portale dei Pagamenti → Lavoratori Domestici → Entra nel servizio</li>
+      <li>Accesso con codice fiscale del datore e codice rapporto (senza SPID)</li>
+      <li>Scegli il trimestre → Visualizza/stampa avviso pagoPA</li>
+      <li>Paghi lì con «Pagamento immediato pagoPA», oppure inquadri il QR del PDF</li>
+      <li>Scarichi le due ricevute: una la firmi, ci metti la data e la consegni</li>
+    </ol>
+  </section>
+
+  <!-- ============ DATI ============ -->
+  <section id="s-dati" hidden>
+    <h2>Rapporto di lavoro</h2>
+    <div class="griglia">
+      <div><label for="d_datore">Datore di lavoro</label><input id="d_datore"></div>
+      <div><label for="d_cfDatore">Codice fiscale datore</label><input id="d_cfDatore"></div>
+      <div><label for="d_lav">Lavoratrice</label><input id="d_lav"></div>
+      <div><label for="d_cfLav">Codice fiscale lavoratrice</label><input id="d_cfLav"></div>
+      <div><label for="d_nascita">Data di nascita</label><input id="d_nascita" type="date"></div>
+      <div><label for="d_assunzione">Data di assunzione</label><input id="d_assunzione" type="date"></div>
+      <div><label for="d_livello">Livello</label><input id="d_livello"></div>
+      <div><label for="d_codRapporto">Codice rapporto INPS</label><input id="d_codRapporto"></div>
+    </div>
+
+    <h2>Retribuzione</h2>
+    <div class="griglia">
+      <div><label for="d_minimo">Minimo contrattuale mensile</label><input id="d_minimo" inputmode="decimal"></div>
+      <div><label for="d_scatti">Scatti di anzianità maturati</label><input id="d_scatti" type="number" min="0" max="7"></div>
+      <div><label for="d_va">Vitto e alloggio al giorno</label><input id="d_va" inputmode="decimal"></div>
+      <div><label for="d_oreSett">Ore settimanali</label><input id="d_oreSett" inputmode="decimal"></div>
+      <div><label for="d_inpsOra">Contributo INPS a carico lavoratrice, all'ora</label><input id="d_inpsOra" inputmode="decimal"></div>
+      <div><label for="d_assistOra">Assistenza contrattuale a carico lavoratrice, all'ora</label><input id="d_assistOra" inputmode="decimal"></div>
+    </div>
+    <div id="derivati" class="nota"></div>
+
+    <h2>Settimane INPS per mese</h2>
+    <p class="sotto">Le trattenute si calcolano sulle settimane, non sui giorni. Ogni trimestre deve fare 13.</p>
+    <div id="tabSettimane"></div>
+    <div id="controlloTrim"></div>
+
+    <h2>Contatori</h2>
+    <div class="griglia">
+      <div><label for="d_carry">Arrotondamento da recuperare</label><input id="d_carry" inputmode="decimal"></div>
+      <div><label for="d_fondo">Fondo TFR al 31/12</label><input id="d_fondo" inputmode="decimal"></div>
+      <div><label for="d_quotaAnno">TFR accantonato nell'anno</label><input id="d_quotaAnno" inputmode="decimal"></div>
+      <div><label for="d_ferieAP">Ferie residue anno precedente</label><input id="d_ferieAP" inputmode="decimal"></div>
+      <div><label for="d_ferieMat">Ferie maturate nell'anno</label><input id="d_ferieMat" inputmode="decimal"></div>
+      <div><label for="d_ferieGod">Ferie godute nell'anno</label><input id="d_ferieGod" inputmode="decimal"></div>
+    </div>
+
+    <h2>Archivio</h2>
+    <div class="barra">
+      <button class="azione vuota" id="esporta">Scarica il file dei dati</button>
+      <button class="azione vuota" id="importa">Carica un file dei dati</button>
+      <input id="fileIn" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div class="barra">
+      <button class="azione rischio" id="azzera">Cancella tutto da questo dispositivo</button>
+    </div>
+    <p class="sotto">I dati stanno solo qui, nella memoria del browser. Non vengono mai inviati da nessuna parte. Scaricane una copia ogni tanto.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+"use strict";
+var CHIAVE = "badante_2026_Vk4pT";
+var DEPOSITO = "badante_stato";
+var LINK_INPS = "https://www.inps.it/it/it/dettaglio-scheda.it.schede-servizio-strumento.schede-servizi.50061.pagamento-dei-contributi-al-lavoratore-domestico.html";
+var MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
+            "luglio","agosto","settembre","ottobre","novembre","dicembre"];
+
+/* ---------- stato ---------- */
+function vuoto(){
+  return {
+    rapporto:{datore:"",cfDatore:"",lavoratrice:"",cfLav:"",nascita:"",
+              assunzione:"",livello:"",codRapporto:""},
+    paga:{minimo:0,scatti:0,va:0,oreSett:54,inpsOra:0,assistOra:0,
+          giorniMese:26,divisoreTFR:13.5},
+    settimane:{},
+    periodo:{m:new Date().getMonth(),a:new Date().getFullYear()},
+    contatori:{carry:0,fondo:0,quotaAnno:0,ferieAP:0,ferieMat:0,ferieGod:0},
+    avvisi:[]
+  };
+}
+var S = vuoto();
+
+function carica(){
+  try{
+    var g = localStorage.getItem(DEPOSITO);
+    if(g){ S = fondi(vuoto(), JSON.parse(g)); }
+  }catch(e){ }
+}
+function fondi(base, sopra){
+  if(!sopra || typeof sopra!=="object") return base;
+  Object.keys(base).forEach(function(k){
+    if(base[k] && typeof base[k]==="object" && !Array.isArray(base[k]))
+      base[k] = fondi(base[k], sopra[k]);
+    else if(sopra[k]!==undefined) base[k]=sopra[k];
+  });
+  Object.keys(sopra).forEach(function(k){ if(base[k]===undefined) base[k]=sopra[k]; });
+  return base;
+}
+function salvaStato(){
+  try{ localStorage.setItem(DEPOSITO, JSON.stringify(S)); }catch(e){}
+}
+
+/* ---------- numeri ---------- */
+function c2(n){ return Math.round((Number(n)||0)*100)/100; }
+function c5(n){ return Math.round((Number(n)||0)*100000)/100000; }
+function eur(n){ return (Number(n)||0).toLocaleString("it-IT",
+  {minimumFractionDigits:2,maximumFractionDigits:2}); }
+function dec(n,q){ return (Number(n)||0).toLocaleString("it-IT",
+  {minimumFractionDigits:q,maximumFractionDigits:q}); }
+function suEuro(x){ return Math.ceil(c2(x)-1e-9); }
+function leggiNum(v){ return Number(String(v).replace(/\./g,"").replace(",","."))||0; }
+
+/* ---------- motore ---------- */
+function pagaBase(){ return c2(S.paga.minimo*(1+0.04*(S.paga.scatti||0))); }
+function rataGiorno(){ return c5(pagaBase()/S.paga.giorniMese); }
+function baseTFR(){ return c2(pagaBase()+S.paga.va*30); }
+function rataFerie(){ return c5(baseTFR()/S.paga.giorniMese); }
+function quotaTFR(){ return c2(baseTFR()/S.paga.divisoreTFR); }
+
+function settimaneDi(a,m){
+  var r = S.settimane[String(a)];
+  if(r && r[m]!==undefined && r[m]!==null && r[m]!=="") return Number(r[m]);
+  return 4;
+}
+function calcola(a,m,tipo,ggFerie){
+  var gg = S.paga.giorniMese, rg = rataGiorno(), rf = rataFerie();
+  var sett = settimaneDi(a,m), ore = c2(sett*S.paga.oreSett);
+  var voci=[], comp=0, inps=0, assist=0;
+
+  if(tipo==="tredicesima"){
+    comp = baseTFR();
+    voci.push({cod:"Z50000",desc:"Tredicesima mensilità",base:baseTFR(),
+               rif:"1,00000 MESE",comp:comp});
+  } else if(tipo==="ferie"){
+    var f = Math.min(Math.max(Number(ggFerie)||0,0),gg);
+    var lav = gg-f;
+    var impF = c2(f*rf), impL = c2(lav*rg);
+    if(lav>0) voci.push({cod:"Z00001",desc:"Retribuzione",base:rg,
+                         rif:dec(lav,5)+" GG",comp:impL});
+    voci.push({cod:"Z00253",desc:"Ferie godute",base:rf,
+               rif:dec(f,5)+" GG",comp:impF});
+    comp = c2(impF+impL);
+    inps = c2(ore*S.paga.inpsOra); assist = c2(ore*S.paga.assistOra);
+  } else {
+    comp = c2(gg*rg);
+    voci.push({cod:"Z00001",desc:"Retribuzione",base:rg,
+               rif:dec(gg,5)+" GG",comp:comp});
+    inps = c2(ore*S.paga.inpsOra); assist = c2(ore*S.paga.assistOra);
+  }
+
+  var carry = c2(S.contatori.carry);
+  var tratt = c2(inps+assist+carry);
+  var netto = suEuro(comp-tratt);
+  var arrot = c2(netto-(comp-tratt));
+
+  return {anno:a,mese:m,tipo:tipo,voci:voci,comp:c2(comp),inps:inps,assist:assist,
+          carry:carry,tratt:tratt,netto:netto,arrot:arrot,sett:sett,ore:ore,
+          quotaTFR:quotaTFR(),baseTFR:baseTFR(),ggFerie:tipo==="ferie"?(Number(ggFerie)||0):0};
+}
+
+/* ---------- cedolino ---------- */
+function disegnaCedolino(r){
+  var c = S.contatori;
+  var saldoFerie = c2(c.ferieAP+c.ferieMat-c.ferieGod);
+  var etichetta = MESI[r.mese].charAt(0).toUpperCase()+MESI[r.mese].slice(1)+" "+r.anno
+                  + (r.tipo==="tredicesima" ? " · tredicesima" : "");
+  var righe = r.voci.map(function(v){
+    return "<tr><td>"+v.cod+" "+v.desc+"</td><td class='d num'>"+dec(v.base,5)+
+           "</td><td class='d num'>"+v.rif+"</td><td class='d num'>"+eur(v.comp)+"</td></tr>";
+  }).join("");
+  var tratt = "";
+  if(r.carry>0) tratt += "<tr><td>ZP9960 Arrotondamento mese precedente</td><td class='d num'>"+eur(r.carry)+"</td></tr>";
+  if(r.inps>0) tratt += "<tr><td>Z00603 Contributi INPS</td><td class='d num'>"+eur(r.inps)+"</td></tr>";
+  if(r.assist>0) tratt += "<tr><td>Z00621 Contributo assistenza contrattuale</td><td class='d num'>"+eur(r.assist)+"</td></tr>";
+  if(!tratt) tratt = "<tr><td>nessuna trattenuta</td><td class='d num'>0,00</td></tr>";
+
+  document.getElementById("cedolino").innerHTML =
+    "<div class='testata'>"+
+      "<div><div class='chi'>"+esc(S.rapporto.lavoratrice||"—")+"</div>"+
+      "<div style='font-size:.75rem;color:var(--tenue)'>"+esc(S.rapporto.cfLav)+
+      (S.rapporto.livello?" · livello "+esc(S.rapporto.livello):"")+"</div></div>"+
+      "<div class='quando'>"+etichetta+"</div>"+
+    "</div>"+
+    "<div style='font-size:.75rem;color:var(--tenue);margin-bottom:.8rem'>"+
+      "Datore di lavoro: "+esc(S.rapporto.datore||"—")+" · "+esc(S.rapporto.cfDatore)+"</div>"+
+
+    "<table><thead><tr><th>Competenze</th><th class='d'>Base</th>"+
+    "<th class='d'>Riferimento</th><th class='d'>Importo</th></tr></thead>"+
+    "<tbody>"+righe+
+    "<tr class='tot'><td colspan='3'>Totale competenze</td><td class='d num'>"+eur(r.comp)+"</td></tr>"+
+    "</tbody></table>"+
+
+    "<table style='margin-top:1rem'><thead><tr><th>Trattenute</th><th class='d'>Importo</th></tr></thead>"+
+    "<tbody>"+tratt+
+    "<tr class='tot'><td>Totale trattenute</td><td class='d num'>"+eur(r.tratt)+"</td></tr>"+
+    "</tbody></table>"+
+
+    "<div class='netto'><span class='etichetta'>Netto del mese</span>"+
+    "<span class='cifra'>"+eur(r.netto)+" €</span></div>"+
+
+    "<div class='piede'>"+
+      "<div>Paga base</div><div class='d num'>"+eur(pagaBase())+"</div>"+
+      "<div>Settimane INPS del mese</div><div class='d num'>"+r.sett+" ("+dec(r.ore,2)+" ore)</div>"+
+      "<div>Retribuzione utile TFR</div><div class='d num'>"+eur(r.baseTFR)+"</div>"+
+      "<div>Quota TFR del mese</div><div class='d num'>"+eur(r.quotaTFR)+"</div>"+
+      "<div>Ferie: residuo, maturate, godute, saldo</div>"+
+      "<div class='d num'>"+dec(c.ferieAP,2)+" · "+dec(c.ferieMat,2)+" · "+
+      dec(c.ferieGod,2)+" · "+dec(saldoFerie,2)+" gg</div>"+
+      "<div>Arrotondamento riportato al mese successivo</div><div class='d num'>"+eur(r.arrot)+"</div>"+
+    "</div>"+
+    "<div class='firma'>Per ricevuta, data e firma della lavoratrice:<span></span></div>";
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>\"]/g,function(x){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[x]; }); }
+
+/* ---------- avvisi contestuali ---------- */
+function disegnaAvvisi(r){
+  var out = "";
+  if(!S.paga.minimo){
+    out += "<div class='nota attenzione'>Non c'è ancora nessun dato del rapporto. "+
+           "Vai su <strong>Dati</strong> e carica il file, oppure compila i campi a mano.</div>";
+  }
+  if(r.mese===11 && r.tipo!=="tredicesima"){
+    out += "<div class='nota'>A dicembre va fatta anche la <strong>tredicesima</strong>, "+
+           "di "+eur(baseTFR())+" € e senza contributi trattenuti. "+
+           "Falla per prima: il suo arrotondamento entra nella busta ordinaria.</div>";
+  }
+  if(r.mese===0){
+    out += "<div class='nota attenzione'>Gennaio: controlla i <strong>nuovi minimi CCNL</strong> "+
+           "prima di elaborare. Decorrono dal 1° gennaio, non da quando escono le tabelle.</div>";
+  }
+  var saldo = c2(S.contatori.ferieAP+S.contatori.ferieMat-S.contatori.ferieGod);
+  if(saldo>=20 && r.tipo!=="ferie"){
+    out += "<div class='nota'>Saldo ferie a <strong>"+dec(saldo,2)+" giorni</strong>. "+
+           "Quando ne fa il blocco, scegli «Con ferie» e mettili tutti: "+
+           "si pagano a "+eur(rataFerie())+" € al giorno invece di "+eur(rataGiorno())+" €.</div>";
+  }
+  out += promemoriaContributi(r.anno, r.mese);
+  document.getElementById("avvisi").innerHTML = out;
+}
+
+/* Il trimestre da versare quando si elabora questo mese.
+   Marzo, giugno, settembre, dicembre: il trimestre si sta chiudendo.
+   Gennaio, aprile, luglio, ottobre: si versa entro il 10 di questo mese. */
+function trimestreDaVersare(a,m){
+  if(m===2)  return {a:a, t:1, quando:"prossimo"};
+  if(m===5)  return {a:a, t:2, quando:"prossimo"};
+  if(m===8)  return {a:a, t:3, quando:"prossimo"};
+  if(m===11) return {a:a, t:4, quando:"prossimo"};
+  if(m===0)  return {a:a-1, t:4, quando:"adesso"};
+  if(m===3)  return {a:a, t:1, quando:"adesso"};
+  if(m===6)  return {a:a, t:2, quando:"adesso"};
+  if(m===9)  return {a:a, t:3, quando:"adesso"};
+  return null;
+}
+function trovaAvviso(a,t){
+  return S.avvisi.filter(function(v){return v.anno===a&&v.trim===t;})[0];
+}
+function promemoriaContributi(a,m){
+  var x = trimestreDaVersare(a,m);
+  if(!x) return "";
+  var av = trovaAvviso(x.a,x.t);
+  if(av && av.pagato) return "";
+  var sc = scadenzaTrim(x.a,x.t);
+  var scritta = "10 "+MESI[sc.getMonth()]+" "+sc.getFullYear();
+  var testa = x.quando==="adesso"
+    ? "Questo mese scadono i contributi del <strong>"+x.t+"° trimestre "+x.a+"</strong>, entro il "+scritta+"."
+    : "Con questa busta si chiude il <strong>"+x.t+"° trimestre "+x.a+"</strong>: i contributi vanno versati entro il "+scritta+".";
+
+  var corpo;
+  if(av && av.codice){
+    corpo = "<div class='piede' style='margin-top:.4rem'>"+
+      "<div>Codice avviso</div><div class='d num'>"+esc(av.codice)+"</div>"+
+      "<div>Codice CBILL</div><div class='d num'>"+esc(av.cbill||"AAQV6")+"</div>"+
+      "<div>Importo</div><div class='d num'>"+eur(av.importo)+" €</div></div>"+
+      "<p style='margin:.5rem 0 0'>Inquadra il QR dell'avviso con l'app della banca, "+
+      "oppure inserisci codice avviso e CBILL a mano.</p>";
+  } else {
+    corpo = "<p style='margin:.5rem 0 0'>L'avviso non ce l'hai ancora. Prendilo qui, "+
+      "l'accesso è senza SPID:</p>"+
+      "<div class='piede' style='margin-top:.4rem'>"+
+      "<div>Codice fiscale datore</div><div class='d num'>"+esc(S.rapporto.cfDatore||"—")+"</div>"+
+      "<div>Codice rapporto di lavoro</div><div class='d num'>"+esc(S.rapporto.codRapporto||"—")+"</div></div>"+
+      "<p style='margin:.5rem 0 0'><a href='"+LINK_INPS+"' target='_blank' rel='noopener'>"+
+      "Apri il Portale dei Pagamenti INPS</a> → Lavoratori Domestici → Entra nel servizio</p>";
+  }
+  return "<div class='nota"+(x.quando==="adesso"?" attenzione":"")+"'>"+testa+corpo+
+    "<div class='barra nonstampare' style='margin:.6rem 0 0'>"+
+    "<button class='azione vuota' onclick='segnaPagato("+x.a+","+x.t+")'>Segnalo come pagato</button>"+
+    "<button class='azione vuota' onclick='vaiContributi("+x.a+","+x.t+")'>Inserisci il codice avviso</button>"+
+    "</div></div>";
+}
+function segnaPagato(a,t){
+  var av = trovaAvviso(a,t);
+  if(!av){ av={anno:a,trim:t,codice:"",importo:0,pagato:true}; S.avvisi.push(av); }
+  av.pagato = true;
+  salvaStato(); aggiorna();
+}
+function vaiContributi(a,t){
+  scheda("contributi");
+  var av = trovaAvviso(a,t);
+  if(av && av.codice) document.getElementById("codAvviso").value = av.codice;
+  document.getElementById("codAvviso").focus();
+}
+
+/* ---------- trimestri ---------- */
+function scadenzaTrim(a,t){
+  var mesi=[3,6,9,0], m=mesi[t-1], anno=(t===4?a+1:a);
+  return new Date(anno, m, 10);
+}
+function oreTrim(a,t){
+  var s=0; for(var i=(t-1)*3;i<t*3;i++) s+=settimaneDi(a,i)*S.paga.oreSett;
+  return s;
+}
+function disegnaTrimestri(){
+  var oggi=new Date(), html="", a=oggi.getFullYear();
+  var lista=[];
+  for(var t=1;t<=4;t++) lista.push({a:a,t:t});
+  lista.push({a:a+1,t:1});
+  lista.forEach(function(x){
+    var sc=scadenzaTrim(x.a,x.t);
+    var ore=oreTrim(x.a,x.t);
+    var atteso=c2(ore*(totOraInps()+S.paga.assistOra*0+0)) ;
+    var tot=c2(ore*totOraTutto());
+    var arch=S.avvisi.filter(function(v){return v.anno===x.a&&v.trim===x.t;})[0];
+    var gg=Math.round((sc-oggi)/86400000);
+    var cls = arch&&arch.pagato ? "trim fatto" : (gg>=0&&gg<=20?"trim urgente":"trim");
+    html += "<div class='"+cls+"'><div class='riga1'>"+
+      "<span class='titolo'>"+x.t+"° trimestre "+x.a+"</span>"+
+      "<span class='num'>"+(tot?eur(tot)+" €":"—")+"</span></div>"+
+      "<div class='scad'>entro il 10 "+MESI[sc.getMonth()]+" "+sc.getFullYear()+
+      (gg>=0&&gg<=40?" · fra "+gg+" giorni":"")+
+      " · "+ore+" ore</div>"+
+      (arch&&arch.codice?"<div class='codice'>"+esc(arch.codice)+"</div>":"")+
+      "</div>";
+  });
+  document.getElementById("listaTrim").innerHTML=html;
+}
+function totOraInps(){ return S.paga.inpsOra; }
+function totOraTutto(){
+  /* stima del dovuto totale: quota lavoratrice + quota datore.
+     Il rapporto fra le due si ricava dall'ultimo avviso archiviato,
+     altrimenti si mostra solo se l'utente ha inserito un importo. */
+  var ult = S.avvisi.filter(function(v){return v.importo>0;}).pop();
+  if(!ult) return 0;
+  var ore = oreTrim(ult.anno, ult.trim);
+  return ore ? ult.importo/ore : 0;
+}
+
+/* ---------- QR pagoPA ---------- */
+function stringaPagoPA(codice, importo, cfEnte){
+  var c = String(codice).replace(/\D/g,"");
+  if(c.length!==18) return null;
+  var cent = String(Math.round(importo*100));
+  while(cent.length<10) cent="0"+cent;
+  return "PAGOPA|002|"+c+"|"+cfEnte+"|"+cent;
+}
+function disegnaQr(){
+  var cod=document.getElementById("codAvviso").value;
+  var imp=leggiNum(document.getElementById("impAvviso").value);
+  var box=document.getElementById("qr"), dati=document.getElementById("qrDati");
+  box.innerHTML=""; dati.innerHTML="";
+  var s=stringaPagoPA(cod,imp,"80078750587");
+  if(!s){ dati.innerHTML="<div class='nota attenzione'>Il codice avviso deve avere "+
+    "esattamente 18 cifre. Lo trovi sull'avviso INPS, sotto «Codice Avviso».</div>"; return; }
+  if(!imp){ dati.innerHTML="<div class='nota attenzione'>Manca l'importo.</div>"; return; }
+  try{
+    new QRCode(box,{text:s,width:200,height:200,correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){
+    box.innerHTML="<div class='nota attenzione'>Non sono riuscito a disegnare il QR "+
+      "(serve la rete). Usa i dati qui sotto nell'app della banca.</div>";
+  }
+  dati.innerHTML="<div class='codice'>"+esc(s)+"</div>"+
+    "<div class='piede'><div>Ente creditore</div><div class='d'>INPS · 80078750587</div>"+
+    "<div>Codice avviso</div><div class='d num'>"+esc(String(cod).replace(/\D/g,""))+"</div>"+
+    "<div>Importo</div><div class='d num'>"+eur(imp)+" €</div></div>";
+  var t=trimCorrente();
+  S.avvisi=S.avvisi.filter(function(v){return !(v.anno===t.a&&v.trim===t.t);});
+  S.avvisi.push({anno:t.a,trim:t.t,codice:String(cod).replace(/\D/g,""),importo:imp,
+               cbill:document.getElementById("cbillAvviso").value.trim()||"AAQV6",pagato:false});
+  salvaStato(); disegnaTrimestri();
+}
+function trimCorrente(){
+  var d=new Date(), m=d.getMonth(), a=d.getFullYear();
+  var t=Math.floor(m/3);           /* trimestre in corso, 0-3 */
+  if(t===0) return {a:a-1,t:4};    /* a gennaio si paga il 4° dell'anno prima */
+  return {a:a,t:t};
+}
+
+/* ---------- tabella settimane ---------- */
+function disegnaSettimane(){
+  var a=Number(document.getElementById("anno").value)||new Date().getFullYear();
+  if(!S.settimane[String(a)]) S.settimane[String(a)]=[4,4,4,4,4,4,4,4,4,4,4,4];
+  var r=S.settimane[String(a)];
+  var h="<div class='griglia3'>";
+  for(var i=0;i<12;i++){
+    h+="<div><label for='sw"+i+"'>"+MESI[i]+"</label>"+
+       "<input id='sw"+i+"' type='number' min='4' max='5' value='"+r[i]+"'></div>";
+  }
+  h+="</div>";
+  document.getElementById("tabSettimane").innerHTML=h;
+  for(var j=0;j<12;j++){
+    (function(k){
+      document.getElementById("sw"+k).addEventListener("input",function(){
+        S.settimane[String(a)][k]=Number(this.value)||4;
+        salvaStato(); controllaTrimestri(a); aggiorna();
+      });
+    })(j);
+  }
+  controllaTrimestri(a);
+}
+function controllaTrimestri(a){
+  var r=S.settimane[String(a)]||[], out="";
+  for(var t=0;t<4;t++){
+    var s=(r[t*3]||0)+(r[t*3+1]||0)+(r[t*3+2]||0);
+    if(s!==13) out+="<div class='nota attenzione'>Il "+(t+1)+"° trimestre "+a+
+      " somma "+s+" settimane invece di 13. Le trattenute non torneranno con l'avviso INPS.</div>";
+  }
+  document.getElementById("controlloTrim").innerHTML=out||
+    "<div class='nota'>I quattro trimestri fanno 13 settimane ciascuno.</div>";
+}
+
+/* ---------- schede ---------- */
+function scheda(nome){
+  ["buste","contributi","dati"].forEach(function(n){
+    document.getElementById("s-"+n).hidden = (n!==nome);
+    document.getElementById("t-"+n).setAttribute("aria-selected", n===nome?"true":"false");
+  });
+  if(nome==="contributi") disegnaTrimestri();
+  if(nome==="dati"){ riempiDati(); disegnaSettimane(); }
+}
+
+/* ---------- form dati ---------- */
+var CAMPI = [
+  ["d_datore","rapporto","datore","t"],["d_cfDatore","rapporto","cfDatore","t"],
+  ["d_lav","rapporto","lavoratrice","t"],["d_cfLav","rapporto","cfLav","t"],
+  ["d_nascita","rapporto","nascita","t"],["d_assunzione","rapporto","assunzione","t"],
+  ["d_livello","rapporto","livello","t"],["d_codRapporto","rapporto","codRapporto","t"],
+  ["d_minimo","paga","minimo","n"],["d_scatti","paga","scatti","n"],
+  ["d_va","paga","va","n"],["d_oreSett","paga","oreSett","n"],
+  ["d_inpsOra","paga","inpsOra","n"],["d_assistOra","paga","assistOra","n"],
+  ["d_carry","contatori","carry","n"],["d_fondo","contatori","fondo","n"],
+  ["d_quotaAnno","contatori","quotaAnno","n"],["d_ferieAP","contatori","ferieAP","n"],
+  ["d_ferieMat","contatori","ferieMat","n"],["d_ferieGod","contatori","ferieGod","n"]
+];
+function riempiDati(){
+  CAMPI.forEach(function(c){
+    var el=document.getElementById(c[0]); if(!el) return;
+    var v=S[c[1]][c[2]];
+    el.value = c[3]==="n" ? (v===0?"0":String(v).replace(".",",")) : (v||"");
+  });
+  mostraDerivati();
+}
+function mostraDerivati(){
+  document.getElementById("derivati").innerHTML=
+    "Paga base <strong>"+eur(pagaBase())+" €</strong> · "+
+    "rata giornaliera "+dec(rataGiorno(),5)+" · "+
+    "base TFR e tredicesima "+eur(baseTFR())+" € · "+
+    "quota TFR "+eur(quotaTFR())+" € · "+
+    "giornata di ferie "+dec(rataFerie(),5);
+}
+
+/* ---------- aggiornamento ---------- */
+function aggiorna(){
+  var m=Number(document.getElementById("mese").value);
+  var a=Number(document.getElementById("anno").value)||new Date().getFullYear();
+  var tipo=document.getElementById("tipo").value;
+  var gg=document.getElementById("ggFerie").value;
+  document.getElementById("boxFerie").hidden = tipo!=="ferie";
+  if(tipo==="ferie"){
+    var saldo=c2(S.contatori.ferieAP+S.contatori.ferieMat-S.contatori.ferieGod);
+    document.getElementById("notaFerie").textContent=
+      "Saldo disponibile "+dec(saldo,2)+" giorni. Pagati a "+eur(rataFerie())+" € l'uno.";
+  }
+  S.periodo={m:m,a:a}; salvaStato();
+  var r=calcola(a,m,tipo,gg);
+  disegnaCedolino(r); disegnaAvvisi(r);
+  document.getElementById("sottotitolo").textContent=
+    (S.rapporto.lavoratrice||"nessun rapporto caricato")+
+    (S.paga.minimo?" · netto "+eur(r.netto)+" €":"");
+  return r;
+}
+
+/* ---------- salva mese ---------- */
+function salvaMese(){
+  var r=aggiorna();
+  var c=S.contatori;
+  c.carry = r.arrot;
+  c.quotaAnno = c2(c.quotaAnno + r.quotaTFR);
+  if(r.tipo!=="tredicesima") c.ferieMat = c2(c.ferieMat + S.paga.giorniMese/12);
+  if(r.tipo==="ferie") c.ferieGod = c2(c.ferieGod + r.ggFerie);
+
+  var m=r.mese, a=r.anno;
+  if(r.tipo==="tredicesima"){
+    /* la tredicesima non fa avanzare il mese: dopo va fatta la busta ordinaria */
+    document.getElementById("tipo").value="ordinaria";
+  } else {
+    m++; if(m>11){ m=0; a++;
+      c.ferieAP = c2(c.ferieAP + c.ferieMat - c.ferieGod);
+      c.ferieMat=0; c.ferieGod=0;
+      c.fondo = c2(c.fondo + c.quotaAnno); c.quotaAnno=0;
+    }
+    document.getElementById("mese").value=m;
+    document.getElementById("anno").value=a;
+  }
+  document.getElementById("ggFerie").value="";
+  salvaStato(); aggiorna();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------- import export ---------- */
+function esportaFile(){
+  var b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  var u=URL.createObjectURL(b), a=document.createElement("a");
+  a.href=u; a.download="buste-paga-dati.json"; a.click();
+  setTimeout(function(){URL.revokeObjectURL(u);},1000);
+}
+function importaFile(f){
+  var l=new FileReader();
+  l.onload=function(){
+    try{
+      S = fondi(vuoto(), JSON.parse(l.result));
+      salvaStato(); riempiDati(); disegnaSettimane();
+      document.getElementById("mese").value=S.periodo.m;
+      document.getElementById("anno").value=S.periodo.a;
+      aggiorna();
+      alert("Dati caricati.");
+    }catch(e){ alert("Il file non è leggibile. Deve essere il .json scaricato da qui."); }
+  };
+  l.readAsText(f);
+}
+
+/* ---------- avvio ---------- */
+function avvia(){
+  var sel=document.getElementById("mese");
+  MESI.forEach(function(n,i){
+    var o=document.createElement("option");
+    o.value=i; o.textContent=n.charAt(0).toUpperCase()+n.slice(1); sel.appendChild(o);
+  });
+  carica();
+  sel.value=S.periodo.m;
+  document.getElementById("anno").value=S.periodo.a;
+
+  ["mese","anno","tipo","ggFerie"].forEach(function(id){
+    document.getElementById(id).addEventListener("input",aggiorna);
+    document.getElementById(id).addEventListener("change",aggiorna);
+  });
+  CAMPI.forEach(function(c){
+    var el=document.getElementById(c[0]);
+    el.addEventListener("input",function(){
+      S[c[1]][c[2]] = c[3]==="n" ? leggiNum(this.value) : this.value;
+      salvaStato(); mostraDerivati(); aggiorna();
+    });
+  });
+  document.getElementById("t-buste").onclick=function(){scheda("buste");};
+  document.getElementById("t-contributi").onclick=function(){scheda("contributi");};
+  document.getElementById("t-dati").onclick=function(){scheda("dati");};
+  document.getElementById("stampa").onclick=function(){window.print();};
+  document.getElementById("salva").onclick=salvaMese;
+  document.getElementById("faiQr").onclick=disegnaQr;
+  document.getElementById("esporta").onclick=esportaFile;
+  document.getElementById("importa").onclick=function(){document.getElementById("fileIn").click();};
+  document.getElementById("fileIn").onchange=function(e){
+    if(e.target.files[0]) importaFile(e.target.files[0]);
+  };
+  document.getElementById("azzera").onclick=function(){
+    if(confirm("Cancello tutti i dati da questo dispositivo. Hai scaricato una copia?")){
+      localStorage.removeItem(DEPOSITO); location.reload();
+    }
+  };
+  aggiorna();
+}
+
+document.getElementById("entra").onclick=function(){
+  var v=document.getElementById("chiave").value.trim();
+  if(v===CHIAVE){
+    try{ localStorage.setItem("badante_chiave",v); }catch(e){}
+    document.getElementById("gate").hidden=true;
+    document.getElementById("app").hidden=false;
+    avvia();
+  } else {
+    document.getElementById("gateErr").textContent="Chiave sbagliata.";
+  }
+};
+document.getElementById("chiave").addEventListener("keydown",function(e){
+  if(e.key==="Enter") document.getElementById("entra").click();
+});
+function semina(){
+  var h = location.hash || "";
+  var i = h.indexOf("dati=");
+  if(i < 0) return false;
+  try{
+    var b = decodeURIComponent(h.slice(i+5));
+    var testo = decodeURIComponent(escape(atob(b.replace(/-/g,"+").replace(/_/g,"/"))));
+    S = fondi(vuoto(), JSON.parse(testo));
+    salvaStato();
+    try{ localStorage.setItem("badante_chiave", CHIAVE); }catch(e){}
+    history.replaceState(null,"",location.pathname);
+    return true;
+  }catch(e){ return false; }
+}
+try{
+  var seminato = semina();
+  if(seminato || localStorage.getItem("badante_chiave")===CHIAVE){
+    document.getElementById("gate").hidden=true;
+    document.getElementById("app").hidden=false;
+    avvia();
+  }
+}catch(e){}
+</script>
+</body>
+</html>
