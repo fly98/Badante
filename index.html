@@ -72,6 +72,10 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
 .netto .cifra{font:600 1.5rem var(--serif);font-variant-numeric:tabular-nums}
 .piede{margin-top:.9rem;padding-top:.5rem;border-top:1px solid var(--rigasottile);
   font-size:.75rem;color:var(--tenue);display:grid;grid-template-columns:1fr 1fr;gap:.15rem .8rem}
+.anag{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;font-size:.75rem;
+  color:var(--tenue);margin-bottom:.8rem;line-height:1.45}
+.anag span{display:block;font-weight:600;color:var(--inchiostro);font-size:.7rem}
+@media (max-width:420px){.anag{grid-template-columns:1fr}}
 .firma{margin-top:1.4rem;font-size:.75rem;color:var(--tenue)}
 .firma span{display:inline-block;border-bottom:1px solid var(--riga);
   width:11rem;margin-left:.5rem;height:1.6rem;vertical-align:bottom}
@@ -199,10 +203,12 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
     <div class="griglia">
       <div><label for="d_datore">Datore di lavoro</label><input id="d_datore"></div>
       <div><label for="d_cfDatore">Codice fiscale datore</label><input id="d_cfDatore"></div>
-      <div><label for="d_lav">Lavoratrice</label><input id="d_lav"></div>
-      <div><label for="d_cfLav">Codice fiscale lavoratrice</label><input id="d_cfLav"></div>
+      <div><label for="d_lav">Lavoratore</label><input id="d_lav"></div>
+      <div><label for="d_cfLav">Codice fiscale lavoratore</label><input id="d_cfLav"></div>
       <div><label for="d_nascita">Data di nascita</label><input id="d_nascita" type="date"></div>
       <div><label for="d_assunzione">Data di assunzione</label><input id="d_assunzione" type="date"></div>
+      <div><label for="d_indirizzo">Indirizzo del datore</label><input id="d_indirizzo"></div>
+      <div><label for="d_qualifica">Qualifica</label><input id="d_qualifica"></div>
       <div><label for="d_livello">Livello</label><input id="d_livello"></div>
       <div><label for="d_codRapporto">Codice rapporto INPS</label><input id="d_codRapporto"></div>
     </div>
@@ -213,8 +219,8 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
       <div><label for="d_scatti">Scatti di anzianità maturati</label><input id="d_scatti" type="number" min="0" max="7"></div>
       <div><label for="d_va">Vitto e alloggio al giorno</label><input id="d_va" inputmode="decimal"></div>
       <div><label for="d_oreSett">Ore settimanali</label><input id="d_oreSett" inputmode="decimal"></div>
-      <div><label for="d_inpsOra">Contributo INPS a carico lavoratrice, all'ora</label><input id="d_inpsOra" inputmode="decimal"></div>
-      <div><label for="d_assistOra">Assistenza contrattuale a carico lavoratrice, all'ora</label><input id="d_assistOra" inputmode="decimal"></div>
+      <div><label for="d_inpsOra">Contributo INPS a carico lavoratore, all'ora</label><input id="d_inpsOra" inputmode="decimal"></div>
+      <div><label for="d_assistOra">Assistenza contrattuale a carico lavoratore, all'ora</label><input id="d_assistOra" inputmode="decimal"></div>
     </div>
     <div id="derivati" class="nota"></div>
 
@@ -231,6 +237,9 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
       <div><label for="d_ferieAP">Ferie residue anno precedente</label><input id="d_ferieAP" inputmode="decimal"></div>
       <div><label for="d_ferieMat">Ferie maturate nell'anno</label><input id="d_ferieMat" inputmode="decimal"></div>
       <div><label for="d_ferieGod">Ferie godute nell'anno</label><input id="d_ferieGod" inputmode="decimal"></div>
+      <div><label for="d_rival">Rivalutazione TFR</label><input id="d_rival" inputmode="decimal"></div>
+      <div><label for="d_impRival">Imposta sulla rivalutazione</label><input id="d_impRival" inputmode="decimal"></div>
+      <div><label for="d_anticipi">Anticipi TFR erogati</label><input id="d_anticipi" inputmode="decimal"></div>
     </div>
 
     <h2>Archivio</h2>
@@ -258,13 +267,14 @@ var MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno",
 /* ---------- stato ---------- */
 function vuoto(){
   return {
-    rapporto:{datore:"",cfDatore:"",lavoratrice:"",cfLav:"",nascita:"",
-              assunzione:"",livello:"",codRapporto:""},
+    rapporto:{datore:"",cfDatore:"",lavoratore:"",cfLav:"",nascita:"",
+              assunzione:"",livello:"",codRapporto:"",indirizzo:"",qualifica:""},
     paga:{minimo:0,scatti:0,va:0,oreSett:54,inpsOra:0,assistOra:0,
           giorniMese:26,divisoreTFR:13.5},
     settimane:{},
     periodo:{m:new Date().getMonth(),a:new Date().getFullYear()},
-    contatori:{carry:0,fondo:0,quotaAnno:0,ferieAP:0,ferieMat:0,ferieGod:0},
+    contatori:{carry:0,fondo:0,quotaAnno:0,ferieAP:0,ferieMat:0,ferieGod:0,
+               rival:0,impRival:0,anticipi:0},
     avvisi:[]
   };
 }
@@ -299,6 +309,44 @@ function dec(n,q){ return (Number(n)||0).toLocaleString("it-IT",
   {minimumFractionDigits:q,maximumFractionDigits:q}); }
 function suEuro(x){ return Math.ceil(c2(x)-1e-9); }
 function leggiNum(v){ return Number(String(v).replace(/\./g,"").replace(",","."))||0; }
+
+/* ---------- calendario ---------- */
+function pasqua(a){
+  var A=a%19,B=Math.floor(a/100),C=a%100,D=Math.floor(B/4),E=B%4,
+      F=Math.floor((B+8)/25),G=Math.floor((B-F+1)/3),
+      H=(19*A+B-D-G+15)%30,I=Math.floor(C/4),K=C%4,L=(32+2*E+2*I-H-K)%7,
+      M=Math.floor((A+11*H+22*L)/451),
+      me=Math.floor((H+L-7*M+114)/31),gi=((H+L-7*M+114)%31)+1;
+  return new Date(a,me-1,gi);
+}
+function festivi(a){
+  var f={};
+  [[0,1],[0,6],[3,25],[4,1],[5,2],[5,29],[7,15],[10,1],[11,8],[11,25],[11,26]]
+    .forEach(function(x){ f[x[0]+"-"+x[1]]=1; });   /* 29 giugno: patrono di Roma */
+  var pq=pasqua(a); var lu=new Date(pq.getTime()+86400000);
+  f[lu.getMonth()+"-"+lu.getDate()]=1;
+  return f;
+}
+function giorniLavorati(a,m){
+  var f=festivi(a), ultimo=new Date(a,m+1,0).getDate(), n=0;
+  for(var d=1;d<=ultimo;d++){
+    var x=new Date(a,m,d);
+    if(x.getDay()===0) continue;                    /* domenica di riposo */
+    if(f[m+"-"+d]) continue;
+    n++;
+  }
+  return n;
+}
+function oreAlGiorno(){ return c2(S.paga.oreSett/6); }
+function prossimoScatto(){
+  if(!S.rapporto.assunzione) return "";
+  var d=new Date(S.rapporto.assunzione);
+  if(isNaN(d)) return "";
+  var n=(Number(S.paga.scatti)||0)+1;
+  if(n>7) return "nessuno, raggiunto il massimo di 7";
+  var q=new Date(d.getFullYear()+2*n, d.getMonth(), 1);
+  return (q.getMonth()+1)+"/"+q.getFullYear();
+}
 
 /* ---------- motore ---------- */
 function pagaBase(){ return c2(S.paga.minimo*(1+0.04*(S.paga.scatti||0))); }
@@ -343,7 +391,9 @@ function calcola(a,m,tipo,ggFerie){
   var netto = suEuro(comp-tratt);
   var arrot = c2(netto-(comp-tratt));
 
+  var ggLav = giorniLavorati(a,m);
   return {anno:a,mese:m,tipo:tipo,voci:voci,comp:c2(comp),inps:inps,assist:assist,
+          ggLav:ggLav, oreLav:c2(ggLav*oreAlGiorno()),
           carry:carry,tratt:tratt,netto:netto,arrot:arrot,sett:sett,ore:ore,
           quotaTFR:quotaTFR(),baseTFR:baseTFR(),ggFerie:tipo==="ferie"?(Number(ggFerie)||0):0};
 }
@@ -366,14 +416,26 @@ function disegnaCedolino(r){
 
   document.getElementById("cedolino").innerHTML =
     "<div class='testata'>"+
-      "<div><div class='chi'>"+esc(S.rapporto.lavoratrice||"—")+"</div>"+
+      "<div><div class='chi'>"+esc(S.rapporto.lavoratore||"—")+"</div>"+
       "<div style='font-size:.75rem;color:var(--tenue)'>"+esc(S.rapporto.cfLav)+
       (S.rapporto.livello?" · livello "+esc(S.rapporto.livello):"")+"</div></div>"+
       "<div class='quando'>"+etichetta+"</div>"+
     "</div>"+
-    "<div style='font-size:.75rem;color:var(--tenue);margin-bottom:.8rem'>"+
-      "Datore di lavoro: "+esc(S.rapporto.datore||"—")+" · "+esc(S.rapporto.cfDatore)+"</div>"+
-
+    "<div class='anag'>"+
+      "<div><span>Datore di lavoro</span>"+esc(S.rapporto.datore||"—")+"<br>"+
+        esc(S.rapporto.indirizzo||"")+"<br>C.F. "+esc(S.rapporto.cfDatore)+"</div>"+
+      "<div><span>Rapporto</span>"+esc(S.rapporto.qualifica||"Lavoro domestico")+
+        "<br>Assunto il "+dataIt(S.rapporto.assunzione)+
+        " · nato il "+dataIt(S.rapporto.nascita)+
+        "<br>Livello "+esc(S.rapporto.livello)+
+        " · prossimo scatto "+esc(prossimoScatto()||"—")+"</div>"+
+    "</div>"+
+    "<div class='piede' style='margin:0 0 .8rem'>"+
+      "<div>Giorni lavorati</div><div class='d num'>"+r.ggLav+"</div>"+
+      "<div>Ore ordinarie</div><div class='d num'>"+dec(r.oreLav,2)+"</div>"+
+      "<div>Settimane INPS</div><div class='d num'>"+r.sett+" ("+dec(r.ore,2)+" ore)</div>"+
+      "<div>Paga base mensile</div><div class='d num'>"+eur(pagaBase())+"</div>"+
+    "</div>"+
     "<table><thead><tr><th>Competenze</th><th class='d'>Base</th>"+
     "<th class='d'>Riferimento</th><th class='d'>Importo</th></tr></thead>"+
     "<tbody>"+righe+
@@ -388,17 +450,32 @@ function disegnaCedolino(r){
     "<div class='netto'><span class='etichetta'>Netto del mese</span>"+
     "<span class='cifra'>"+eur(r.netto)+" €</span></div>"+
 
-    "<div class='piede'>"+
-      "<div>Paga base</div><div class='d num'>"+eur(pagaBase())+"</div>"+
-      "<div>Settimane INPS del mese</div><div class='d num'>"+r.sett+" ("+dec(r.ore,2)+" ore)</div>"+
+    "<h3 style='margin:1.1rem 0 .2rem;font-size:.8rem'>Trattamento di fine rapporto</h3>"+
+    "<div class='piede' style='margin-top:0'>"+
+      "<div>Fondo al 31/12</div><div class='d num'>"+eur(c.fondo)+"</div>"+
+      "<div>Rivalutazione</div><div class='d num'>"+eur(c.rival)+"</div>"+
+      "<div>Imposta sulla rivalutazione</div><div class='d num'>"+eur(c.impRival)+"</div>"+
+      "<div>Quota accantonata nell'anno</div><div class='d num'>"+eur(c.quotaAnno)+"</div>"+
+      "<div>Anticipi erogati</div><div class='d num'>"+eur(c.anticipi)+"</div>"+
       "<div>Retribuzione utile TFR</div><div class='d num'>"+eur(r.baseTFR)+"</div>"+
       "<div>Quota TFR del mese</div><div class='d num'>"+eur(r.quotaTFR)+"</div>"+
-      "<div>Ferie: residuo, maturate, godute, saldo</div>"+
-      "<div class='d num'>"+dec(c.ferieAP,2)+" · "+dec(c.ferieMat,2)+" · "+
-      dec(c.ferieGod,2)+" · "+dec(saldoFerie,2)+" gg</div>"+
-      "<div>Arrotondamento riportato al mese successivo</div><div class='d num'>"+eur(r.arrot)+"</div>"+
+      "<div><strong>Totale maturato</strong></div><div class='d num'><strong>"+
+        eur(c2(c.fondo+c.rival-c.impRival+c.quotaAnno-c.anticipi))+"</strong></div>"+
     "</div>"+
-    "<div class='firma'>Per ricevuta, data e firma della lavoratrice:<span></span></div>";
+    "<h3 style='margin:1.1rem 0 .2rem;font-size:.8rem'>Ferie</h3>"+
+    "<div class='piede' style='margin-top:0'>"+
+      "<div>Residue dall'anno precedente</div><div class='d num'>"+dec(c.ferieAP,5)+"</div>"+
+      "<div>Maturate nell'anno</div><div class='d num'>"+dec(c.ferieMat,5)+"</div>"+
+      "<div>Godute</div><div class='d num'>"+dec(c.ferieGod,5)+"</div>"+
+      "<div><strong>Saldo</strong></div><div class='d num'><strong>"+dec(saldoFerie,5)+" gg</strong></div>"+
+      "<div>Arrotondamento riportato al mese dopo</div><div class='d num'>"+eur(r.arrot)+"</div>"+
+    "</div>"+
+    "<div class='firma'>Per ricevuta, data e firma del lavoratore:<span></span></div>";
+}
+function dataIt(v){
+  if(!v) return "—";
+  var p=String(v).split("-");
+  return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : String(v);
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>\"]/g,function(x){
   return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[x]; }); }
@@ -424,6 +501,11 @@ function disegnaAvvisi(r){
     out += "<div class='nota'>Saldo ferie a <strong>"+dec(saldo,2)+" giorni</strong>. "+
            "Quando ne fa il blocco, scegli «Con ferie» e mettili tutti: "+
            "si pagano a "+eur(rataFerie())+" € al giorno invece di "+eur(rataGiorno())+" €.</div>";
+  }
+  if(r.mese===11){
+    out += "<div class='nota'>A fine anno va aggiornata la <strong>rivalutazione del TFR</strong>: "+
+           "1,5% fisso più il 75% dell'indice ISTAT dei prezzi al consumo, con l'imposta del 17% "+
+           "sulla rivalutazione stessa. L'indice definitivo esce a gennaio: aggiorna i due campi in Dati.</div>";
   }
   out += promemoriaContributi(r.anno, r.mese);
   document.getElementById("avvisi").innerHTML = out;
@@ -528,7 +610,7 @@ function disegnaTrimestri(){
 }
 function totOraInps(){ return S.paga.inpsOra; }
 function totOraTutto(){
-  /* stima del dovuto totale: quota lavoratrice + quota datore.
+  /* stima del dovuto totale: quota lavoratore + quota datore.
      Il rapporto fra le due si ricava dall'ultimo avviso archiviato,
      altrimenti si mostra solo se l'utente ha inserito un importo. */
   var ult = S.avvisi.filter(function(v){return v.importo>0;}).pop();
@@ -623,9 +705,10 @@ function scheda(nome){
 /* ---------- form dati ---------- */
 var CAMPI = [
   ["d_datore","rapporto","datore","t"],["d_cfDatore","rapporto","cfDatore","t"],
-  ["d_lav","rapporto","lavoratrice","t"],["d_cfLav","rapporto","cfLav","t"],
+  ["d_lav","rapporto","lavoratore","t"],["d_cfLav","rapporto","cfLav","t"],
   ["d_nascita","rapporto","nascita","t"],["d_assunzione","rapporto","assunzione","t"],
-  ["d_livello","rapporto","livello","t"],["d_codRapporto","rapporto","codRapporto","t"],
+  ["d_livello","rapporto","livello","t"],["d_indirizzo","rapporto","indirizzo","t"],
+  ["d_qualifica","rapporto","qualifica","t"],["d_codRapporto","rapporto","codRapporto","t"],
   ["d_minimo","paga","minimo","n"],["d_scatti","paga","scatti","n"],
   ["d_va","paga","va","n"],["d_oreSett","paga","oreSett","n"],
   ["d_inpsOra","paga","inpsOra","n"],["d_assistOra","paga","assistOra","n"],
@@ -666,7 +749,7 @@ function aggiorna(){
   var r=calcola(a,m,tipo,gg);
   disegnaCedolino(r); disegnaAvvisi(r);
   document.getElementById("sottotitolo").textContent=
-    (S.rapporto.lavoratrice||"nessun rapporto caricato")+
+    (S.rapporto.lavoratore||"nessun rapporto caricato")+
     (S.paga.minimo?" · netto "+eur(r.netto)+" €":"");
   return r;
 }
@@ -758,7 +841,7 @@ function avvia(){
       aggiorna();
       document.getElementById("semeIn").value="";
       esito.innerHTML="<div class='nota'>Dati caricati: <strong>"+
-        esc(S.rapporto.lavoratrice||"?")+"</strong>, paga base "+eur(pagaBase())+" €.</div>";
+        esc(S.rapporto.lavoratore||"?")+"</strong>, paga base "+eur(pagaBase())+" €.</div>";
     }catch(e){
       esito.innerHTML="<div class='nota attenzione'>Non riesco a leggere quel codice. "+
         "Copialo tutto, dall'inizio alla fine, senza righe a capo.</div>";
