@@ -123,7 +123,7 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
 
 <div class="wrap" id="app" hidden>
   <h1 id="titolo">Buste paga</h1>
-  <p class="sotto" id="sottotitolo"></p><p class="sotto" style="margin-top:-.9rem;font-size:.72rem">versione 5</p>
+  <p class="sotto" id="sottotitolo"></p><p class="sotto" style="margin-top:-.9rem;font-size:.72rem">versione 6</p>
 
   <nav role="tablist">
     <button role="tab" id="t-buste" aria-selected="true">Buste</button>
@@ -171,7 +171,7 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
     <label for="codAvviso">Codice avviso (18 cifre, sull'avviso INPS)</label>
     <input id="codAvviso" inputmode="numeric" placeholder="312260701711764437">
     <label for="impAvviso">Importo in euro</label>
-    <input id="impAvviso" inputmode="decimal" placeholder="870,48">
+    <input id="impAvviso" inputmode="decimal" placeholder="912,60">
     <label for="cbillAvviso">Codice CBILL</label>
     <input id="cbillAvviso" placeholder="AAQV6">
     <div class="barra"><button class="azione" id="faiQr">Disegna il QR</button></div>
@@ -183,7 +183,7 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
       <li>inps.it → Prestazioni e servizi → Tutti i servizi</li>
       <li>Portale dei Pagamenti → Lavoratori Domestici → Entra nel servizio</li>
       <li>Accesso con codice fiscale del datore e codice rapporto (senza SPID)</li>
-      <li>Scegli il trimestre → Visualizza/stampa avviso pagoPA</li>
+      <li>Scegli il trimestre e inserisci a mano il codice <strong>F2</strong> (Cassa Colf), poi genera l'avviso pagoPA</li>
       <li>Paghi lì con «Pagamento immediato pagoPA», oppure inquadri il QR del PDF</li>
       <li>Scarichi le due ricevute: una la firmi, ci metti la data e la consegni</li>
     </ol>
@@ -223,6 +223,8 @@ tr.tot td{border-top:1px solid var(--riga);border-bottom:0;font-weight:600;paddi
         <select id="d_ferieMese"></select></div>
       <div><label for="d_inpsOra">Contributo INPS a carico lavoratore, all'ora</label><input id="d_inpsOra" inputmode="decimal"></div>
       <div><label for="d_assistOra">Assistenza contrattuale a carico lavoratore, all'ora</label><input id="d_assistOra" inputmode="decimal"></div>
+      <div><label for="d_inpsTotOra">Contributo INPS totale all'ora (datore + lavoratore)</label><input id="d_inpsTotOra" inputmode="decimal"></div>
+      <div><label for="d_cassaColfOra">Cassa Colf all'ora, totale (codice F2)</label><input id="d_cassaColfOra" inputmode="decimal"></div>
     </div>
     <div id="derivati" class="nota"></div>
 
@@ -271,7 +273,7 @@ function vuoto(){
   return {
     rapporto:{datore:"",cfDatore:"",lavoratore:"",cfLav:"",nascita:"",
               assunzione:"",livello:"",codRapporto:"",indirizzo:"",qualifica:""},
-    paga:{minimo:0,scatti:0,va:0,oreSett:54,inpsOra:0,assistOra:0,
+    paga:{minimo:0,scatti:0,va:0,oreSett:54,inpsOra:0,assistOra:0,inpsTotOra:0,cassaColfOra:0,
           giorniMese:26,divisoreTFR:13.5},
     settimane:{},
     periodo:{m:new Date().getMonth(),a:new Date().getFullYear()},
@@ -415,7 +417,7 @@ function disegnaCedolino(r){
   var tratt = "";
   if(r.carry>0) tratt += "<tr><td>ZP9960 Arrotondamento mese precedente</td><td class='d num'>"+eur(r.carry)+"</td></tr>";
   if(r.inps>0) tratt += "<tr><td>Z00603 Contributi INPS</td><td class='d num'>"+eur(r.inps)+"</td></tr>";
-  if(r.assist>0) tratt += "<tr><td>Z00621 Contributo assistenza contrattuale</td><td class='d num'>"+eur(r.assist)+"</td></tr>";
+  if(r.assist>0) tratt += "<tr><td>Z00621 Contributo assistenza contrattuale (Cassa Colf)</td><td class='d num'>"+eur(r.assist)+"</td></tr>";
   if(!tratt) tratt = "<tr><td>nessuna trattenuta</td><td class='d num'>0,00</td></tr>";
 
   document.getElementById("cedolino").innerHTML =
@@ -562,17 +564,32 @@ function promemoriaContributi(a,m){
     ? "Questo mese scadono i contributi del <strong>"+x.t+"° trimestre "+x.a+"</strong>, entro il "+scritta+"."
     : "Con questa busta si chiude il <strong>"+x.t+"° trimestre "+x.a+"</strong>: i contributi vanno versati entro il "+scritta+".";
 
+  var ore = oreTrim(x.a,x.t);
+  var dovInps = c2(ore*(Number(S.paga.inpsTotOra)||0)), dovCC = c2(ore*(Number(S.paga.cassaColfOra)||0));
+  var dov = c2(dovInps+dovCC);
+  var calcolo = dov>0 ?
+    "<div class='piede' style='margin-top:.5rem'>"+
+      "<div>Contributi INPS ("+ore+" ore)</div><div class='d num'>"+eur(dovInps)+" €</div>"+
+      "<div>Cassa Colf, codice F2</div><div class='d num'>"+eur(dovCC)+" €</div>"+
+      "<div><strong>Totale da versare</strong></div><div class='d num'><strong>"+eur(dov)+" €</strong></div></div>" : "";
   var corpo;
   if(av && av.codice){
-    corpo = "<div class='piede' style='margin-top:.4rem'>"+
+    corpo = calcolo+
+      "<div class='piede' style='margin-top:.5rem'>"+
       "<div>Codice avviso</div><div class='d num'>"+esc(av.codice)+"</div>"+
       "<div>Codice CBILL</div><div class='d num'>"+esc(av.cbill||"AAQV6")+"</div>"+
-      "<div>Importo</div><div class='d num'>"+eur(av.importo)+" €</div></div>"+
+      "<div>Importo sull'avviso</div><div class='d num'>"+eur(av.importo)+" €</div></div>"+
+      (dov>0 && Math.abs(av.importo-dov)>0.01 ?
+        "<p style='margin:.5rem 0 0;color:var(--allarme)'><strong>Attenzione:</strong> l'avviso dice "+
+        eur(av.importo)+" € ma dovrebbe dire "+eur(dov)+" €. Non pagarlo: manca la Cassa Colf.</p>" : "")+
       "<p style='margin:.5rem 0 0'>Inquadra il QR dell'avviso con l'app della banca, "+
       "oppure inserisci codice avviso e CBILL a mano.</p>";
   } else {
-    corpo = "<p style='margin:.5rem 0 0'>L'avviso non ce l'hai ancora. Prendilo qui, "+
-      "l'accesso è senza SPID:</p>"+
+    corpo = calcolo+
+      "<p style='margin:.5rem 0 0'><strong>Importante:</strong> l'avviso che spedisce l'INPS non comprende "+
+      "la Cassa Colf. Sul portale, quando ti chiede i dati, inserisci a mano il codice <strong>F2</strong> "+
+      "(Fondo Colf): l'importo deve venire "+(dov>0?eur(dov)+" €":"più alto")+", non solo la quota INPS.</p>"+
+      "<p style='margin:.5rem 0 0'>Accesso senza SPID:</p>"+
       "<div class='piede' style='margin-top:.4rem'>"+
       "<div>Codice fiscale datore</div><div class='d num'>"+esc(S.rapporto.cfDatore||"—")+"</div>"+
       "<div>Codice rapporto di lavoro</div><div class='d num'>"+esc(S.rapporto.codRapporto||"—")+"</div></div>"+
@@ -638,6 +655,8 @@ function disegnaTrimestri(){
 }
 function totOraInps(){ return S.paga.inpsOra; }
 function totOraTutto(){
+  var tt=(Number(S.paga.inpsTotOra)||0)+(Number(S.paga.cassaColfOra)||0);
+  if(tt>0) return tt;
   /* stima del dovuto totale: quota lavoratore + quota datore.
      Il rapporto fra le due si ricava dall'ultimo avviso archiviato,
      altrimenti si mostra solo se l'utente ha inserito un importo. */
@@ -740,6 +759,7 @@ var CAMPI = [
   ["d_minimo","paga","minimo","n"],["d_scatti","paga","scatti","n"],
   ["d_va","paga","va","n"],["d_oreSett","paga","oreSett","n"],
   ["d_inpsOra","paga","inpsOra","n"],["d_assistOra","paga","assistOra","n"],
+  ["d_inpsTotOra","paga","inpsTotOra","n"],["d_cassaColfOra","paga","cassaColfOra","n"],
   ["d_carry","contatori","carry","n"],["d_fondo","contatori","fondo","n"],
   ["d_quotaAnno","contatori","quotaAnno","n"],["d_ferieAP","contatori","ferieAP","n"],
   ["d_ferieMat","contatori","ferieMat","n"],["d_ferieGod","contatori","ferieGod","n"]
@@ -801,8 +821,8 @@ function salvaMese(){
   var c=S.contatori;
   c.carry = r.arrot;
   c.quotaAnno = c2(c.quotaAnno + r.quotaTFR);
-  if(r.tipo!=="tredicesima") c.ferieMat = c2(c.ferieMat + S.paga.giorniMese/12);
-  if(r.tipo==="ferie") c.ferieGod = c2(c.ferieGod + r.ggFerie);
+  if(r.tipo!=="tredicesima") c.ferieMat = c5(c.ferieMat + S.paga.giorniMese/12);
+  if(r.tipo==="ferie") c.ferieGod = c5(c.ferieGod + r.ggFerie);
 
   var m=r.mese, a=r.anno;
   if(r.tipo==="tredicesima"){
@@ -810,7 +830,7 @@ function salvaMese(){
     document.getElementById("tipo").value="ordinaria";
   } else {
     m++; if(m>11){ m=0; a++;
-      c.ferieAP = c2(c.ferieAP + c.ferieMat - c.ferieGod);
+      c.ferieAP = c5(c.ferieAP + c.ferieMat - c.ferieGod);
       c.ferieMat=0; c.ferieGod=0;
       c.fondo = c2(c.fondo + c.quotaAnno); c.quotaAnno=0;
     }
